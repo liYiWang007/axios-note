@@ -1,7 +1,8 @@
 // 请求接口 http://jsonplaceholder.typicode.com/todos
 
-// const { axios } = require("./axios.min");
-
+//https://jwt.io/ token校验
+axios.defaults.headers.common["X-Auth-Token"] =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
 // GET请求
 function getTodos() {
   // 代码优化写法
@@ -105,6 +106,87 @@ function customHeaders() {
     .catch((err) => console.log(err))
 }
 
+// TRANSFORM 请求和响应
+function transformResponse() {
+  const options = {
+    method: "post",
+    url: "http://jsonplaceholder.typicode.com/todos",
+    data: {
+      title: "hello world",
+    },
+    // .concat() 合并多个数组
+    transformResponse: axios.defaults.transformResponse.concat((data) => {
+      data.title = data.title.toUpperCase() //转化为大写
+      return data
+    }),
+  }
+  axios(options).then((res) => showOutput(res))
+}
+
+// ERROR处理
+function errorHandling() {
+  axios
+    .get("http://jsonplaceholder.typicode.com/todoserror")
+    .then((res) => showOutput(res))
+    .catch((err) => {
+      if (err.response) {
+        console.log(err.response.data)
+        console.log(err.response.status + "status")
+        console.log(err.response.headers)
+
+        if (err.response.status == 404) {
+          alert("404 页面丢失")
+        } else if (err.response.status >= 500) {
+          alert("服务器接口出现问题")
+        } else if (err.request) {
+          //发起请求但没有相应 需要后端配合
+          console.error(err.request)
+        } else {
+          //需要后端配合
+          console.error(err.message)
+        }
+      }
+    })
+}
+
+function cancelToken() {
+  // source 属性用于返回模式匹配所用的文本。
+  const source = axios.CancelToken.source()
+  axios
+    .get("http://jsonplaceholder.typicode.com/todos", {
+      cancelToken: source.token,
+    })
+    .then((res) => showOutput(res))
+    .catch((thrown) => {
+      if (axios.isCancel(thrown)) {
+        console.log("request canceled", thrown.message)
+      }
+    })
+  if (true) {
+    source.cancel("request canceled")
+  }
+}
+
+// 请求拦截
+axios.interceptors.request.use((config) => {
+    // .getTime() 获取时间 需要转化
+    console.log(
+    `${config.method.toUpperCase()} request sent to ${
+      config.url
+    } at ${new Date().getTime()}`
+  )
+  return config
+},error=>{
+    return Promise.reject(error)
+})
+
+// axios实例化
+const axiosInstance =axios.create({
+    baseURL:'http://jsonplaceholder.typicode.com'
+})
+axiosInstance.get('/comments?_limit=5').then(res=>showOutput(res))
+
+
 // 数据展示
 function showOutput(res) {
   document.getElementById("res").innerHTML = `
@@ -145,8 +227,8 @@ document.getElementById("update").addEventListener("click", updateTodo)
 document.getElementById("delete").addEventListener("click", removeTodo)
 document.getElementById("sim").addEventListener("click", getData)
 document.getElementById("headers").addEventListener("click", customHeaders)
-// document
-//   .getElementById("transform")
-//   .addEventListener("click", transformResponse);
-// document.getElementById("error").addEventListener("click", errorHandling);
-// document.getElementById("cancel").addEventListener("click", cancelToken);
+document
+  .getElementById("transform")
+  .addEventListener("click", transformResponse)
+document.getElementById("error").addEventListener("click", errorHandling)
+document.getElementById("cancel").addEventListener("click", cancelToken)
